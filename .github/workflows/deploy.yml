@@ -34,7 +34,7 @@ jobs:
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_NAME: ${{ secrets.DB_NAME }}
-          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD || 'Nelus260817' }}
           NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL || 'majkjaer_bryllup@outlook.dk' }}
         run: |
           php -r '
@@ -52,7 +52,7 @@ jobs:
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
+          username: ${{ secrets.FTP_USER || secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./dist/
           server-dir: ${{ secrets.FTP_DIR || './' }}
@@ -74,7 +74,7 @@ jobs:
 
       - name: Valgfri engangs-nulstilling af database
         env:
-          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD || 'Nelus260817' }}
           RESET_INPUT: ${{ github.event.inputs.reset_db }}
         run: |
           curl -fsS -X POST "https://majkjaer.dk/admin_diet.php" \
