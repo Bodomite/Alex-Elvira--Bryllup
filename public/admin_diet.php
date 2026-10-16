@@ -6,6 +6,13 @@ require_admin();
 
 try {
     $conn = db();
+    $conn->query("CREATE TABLE IF NOT EXISTS gaeste_hensyn (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        navn VARCHAR(255) NOT NULL,
+        hensyn TEXT NOT NULL,
+        note TEXT NULL DEFAULT NULL,
+        oprettet_dato TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     $data = json_decode(file_get_contents('php://input'), true) ?: [];
     $action = $_SERVER['REQUEST_METHOD'] === 'POST' ? ($data['action'] ?? '') : '';
 

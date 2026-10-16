@@ -16,7 +16,20 @@ function json_headers() {
 
 function db() {
     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-    $conn = new mysqli(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
+    try {
+        $conn = new mysqli(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
+    } catch (Exception $e) {
+        if (is_file(__DIR__ . '/db_config.php')) {
+            $cfg = file_get_contents(__DIR__ . '/db_config.php');
+            preg_match("/'DB_HOST',\s*'([^']*)'/", $cfg, $h);
+            preg_match("/'DB_USER',\s*'([^']*)'/", $cfg, $u);
+            preg_match("/'DB_PASSWORD',\s*'([^']*)'/", $cfg, $p);
+            preg_match("/'DB_NAME',\s*'([^']*)'/", $cfg, $n);
+            $conn = new mysqli($h[1] ?? 'localhost', $u[1] ?? '', $p[1] ?? '', $n[1] ?? '');
+        } else {
+            throw $e;
+        }
+    }
     $conn->set_charset('utf8mb4');
     return $conn;
 }

@@ -69,6 +69,7 @@ jobs:
             forside_billeder/*.webp
             cache/**
             .ftpquota
+            db_config.php
             php.ini
             error_log
 
