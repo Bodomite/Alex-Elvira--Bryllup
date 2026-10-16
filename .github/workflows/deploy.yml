@@ -1,0 +1,83 @@
+name: Build & Deploy til Webhotel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      reset_db:
+        description: 'Tøm kosthensyn-tabellen i databasen (skriv SLET ALT for at bekræfte)'
+        required: false
+        default: ''
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hent kode
+        uses: actions/checkout@v4
+
+      - name: Opsæt Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer pakker & byg React-side
+        run: |
+          npm ci
+          npm run build
+
+      - name: Generér secrets.php fra GitHub Secrets
+        env:
+          DB_HOST: ${{ secrets.DB_HOST || 'localhost' }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL || 'majkjaer_bryllup@outlook.dk' }}
+        run: |
+          php -r '
+            $out = "<?php\n"
+              . "define(\"DB_HOST\", " . var_export(getenv("DB_HOST") ?: "localhost", true) . ");\n"
+              . "define(\"DB_USER\", " . var_export(getenv("DB_USER"), true) . ");\n"
+              . "define(\"DB_PASSWORD\", " . var_export(getenv("DB_PASSWORD"), true) . ");\n"
+              . "define(\"DB_NAME\", " . var_export(getenv("DB_NAME"), true) . ");\n"
+              . "define(\"ADMIN_PASSWORD\", " . var_export(getenv("ADMIN_PASSWORD"), true) . ");\n"
+              . "define(\"NOTIFY_EMAIL\", " . var_export(getenv("NOTIFY_EMAIL"), true) . ");\n";
+            file_put_contents("dist/secrets.php", $out);
+          '
+
+      - name: Deploy til webhotel via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./dist/
+          server-dir: ${{ secrets.FTP_DIR || './' }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            minder/**
+            billeder/**
+            hero_images/**
+            forside_billeder/*.jpg
+            forside_billeder/*.jpeg
+            forside_billeder/*.png
+            forside_billeder/*.webp
+            cache/**
+            .ftpquota
+            php.ini
+            error_log
+
+      - name: Valgfri engangs-nulstilling af database
+        if: ${{ github.event.inputs.reset_db == 'SLET ALT' }}
+        env:
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          curl -fsS -X POST "https://majkjaer.dk/admin_diet.php" \
+            -H "Authorization: Bearer $ADMIN_PASSWORD" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"reset_all","confirm":"SLET ALT"}'
