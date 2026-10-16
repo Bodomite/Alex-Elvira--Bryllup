@@ -73,11 +73,17 @@ jobs:
             error_log
 
       - name: Valgfri engangs-nulstilling af database
-        if: ${{ github.event.inputs.reset_db == 'SLET ALT' }}
         env:
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          RESET_INPUT: ${{ github.event.inputs.reset_db }}
         run: |
           curl -fsS -X POST "https://majkjaer.dk/admin_diet.php" \
             -H "Authorization: Bearer $ADMIN_PASSWORD" \
             -H "Content-Type: application/json" \
-            -d '{"action":"reset_all","confirm":"SLET ALT"}'
+            -d '{"action":"cleanup_before","date":"2026-10-16"}' || true
+          if [ "$RESET_INPUT" = "SLET ALT" ]; then
+            curl -fsS -X POST "https://majkjaer.dk/admin_diet.php" \
+              -H "Authorization: Bearer $ADMIN_PASSWORD" \
+              -H "Content-Type: application/json" \
+              -d '{"action":"reset_all","confirm":"SLET ALT"}'
+          fi

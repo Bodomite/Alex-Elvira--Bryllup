@@ -27,6 +27,11 @@ try {
         // Engangsoprydning, fx før et nyt bryllup genbruger databasen.
         $conn->query('TRUNCATE TABLE gaeste_hensyn');
         echo json_encode(['success' => true, 'message' => 'Alle indmeldelser er slettet.']);
+    } elseif ($action === 'cleanup_before' && !empty($data['date'])) {
+        $stmt = $conn->prepare('DELETE FROM gaeste_hensyn WHERE oprettet_dato < ?');
+        $stmt->bind_param('s', $data['date']);
+        $stmt->execute();
+        echo json_encode(['success' => true, 'deleted' => $stmt->affected_rows]);
     } else {
         $res = $conn->query('SELECT id, navn, hensyn, note, oprettet_dato FROM gaeste_hensyn ORDER BY oprettet_dato DESC');
         $rows = [];
